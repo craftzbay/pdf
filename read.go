@@ -894,7 +894,7 @@ func (r *Reader) resolve(parent objptr, x interface{}) Value {
 				}
 				b := newBuffer(strm.Reader(), 0)
 				b.allowEOF = true
-				for i := 0; i < n; i++ {
+				for i := 0; i < n && !b.eof; i++ { // /N larger than the stream: stop at its end
 					id, _ := b.readToken().(int64)
 					off, _ := b.readToken().(int64)
 					if uint32(id) == ptr.id {
