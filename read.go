@@ -873,11 +873,17 @@ func (r *Reader) resolve(parent objptr, x interface{}) Value {
 		var obj object
 		if xref.inStream {
 			strm := r.resolve(parent, xref.stream)
+			seen := map[objptr]bool{}
 		Search:
 			for {
 				if strm.Kind() != Stream {
 					panic("not a stream")
 				}
+				// An /Extends chain that loops back would otherwise be followed forever.
+				if seen[strm.ptr] {
+					panic("object stream /Extends cycle")
+				}
+				seen[strm.ptr] = true
 				if strm.Key("Type").Name() != "ObjStm" {
 					panic("not an object stream")
 				}

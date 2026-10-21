@@ -192,6 +192,9 @@ func (b *buffer) readHexString() token {
 	for {
 	Loop:
 		c := b.readByte()
+		if b.eof {
+			b.errorf("malformed PDF: unterminated hex string")
+		}
 		if c == '>' {
 			break
 		}
@@ -200,6 +203,9 @@ func (b *buffer) readHexString() token {
 		}
 	Loop2:
 		c2 := b.readByte()
+		if b.eof {
+			b.errorf("malformed PDF: unterminated hex string")
+		}
 		if isSpace(c2) {
 			goto Loop2
 		}
@@ -232,6 +238,9 @@ func (b *buffer) readLiteralString() token {
 Loop:
 	for {
 		c := b.readByte()
+		if b.eof {
+			b.errorf("malformed PDF: unterminated literal string")
+		}
 		switch c {
 		default:
 			tmp = append(tmp, c)
@@ -483,6 +492,12 @@ func (b *buffer) readArray() object {
 		tok := b.readToken()
 		if tok == nil || tok == keyword("]") {
 			break
+		}
+		// readObject un-reads endobj and returns without consuming anything, and
+		// readToken keeps returning io.EOF at the end of an EOF-tolerant buffer:
+		// either would make this loop spin forever. Both mean the array is unterminated.
+		if tok == keyword("endobj") || tok == io.EOF {
+			b.errorf("malformed PDF: unterminated array")
 		}
 		b.unreadToken(tok)
 		x = append(x, b.readObject())
